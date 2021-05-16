@@ -31,26 +31,29 @@ USE WideWorldImporters
 */
 -- Я не уверен, что я верно соединил таблицы.
 
-TODO: select PersonID,FullName from Application.People
-where IsSalesperson =1 and PersonID in
-(
-  select SalespersonPersonID
-  from Sales.Invoices si
-  join Sales.InvoiceLines sil on sil.InvoiceID = si.InvoiceID
-  where InvoiceDate <> '2015-07-04' 
-)
-order by PersonID
+--TODO: select PersonID,FullName from Application.People
+--where IsSalesperson =1 and PersonID in
+--(
+--  select SalespersonPersonID
+--  from Sales.Invoices si
+--  join Sales.InvoiceLines sil on sil.InvoiceID = si.InvoiceID
+--  where InvoiceDate <> '2015-07-04' 
+--)
+--order by PersonID
 
-;with cte as(
-select distinct(SalespersonPersonID)
-  from Sales.Invoices si
-  join Sales.InvoiceLines sil on sil.InvoiceID = si.InvoiceID
-  where InvoiceDate <> '2015-07-04' 
-) select PersonID,FullName from Application.People p
- join cte cte on cte.SalespersonPersonID = p.personID
-where IsSalesperson =1 
+--;with cte as(
+--select distinct(SalespersonPersonID)
+--  from Sales.Invoices si
+--  join Sales.InvoiceLines sil on sil.InvoiceID = si.InvoiceID
+--  where InvoiceDate <> '2015-07-04' 
+--) select PersonID,FullName from Application.People p
+-- join cte cte on cte.SalespersonPersonID = p.personID
+--where IsSalesperson =1 
 
-
+SELECT PersonID,FullName
+FROM Application.People AS P 
+WHERE P.IsSalesperson = 1 AND 
+NOT EXISTS (select * from Sales.Invoices where InvoiceDate ='2015-07-04' and SalespersonPersonID = P.PersonID);
 
 /*
 2. Выберите товары с минимальной ценой (подзапросом). Сделайте два варианта подзапроса. 

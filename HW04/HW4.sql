@@ -127,14 +127,14 @@ order by CountryID,CountryName, CODE desc --так?))
 --Я пока не могу сообразить, задание должно сделано быть через outer apply?
 select  SC.CustomerID,SC.CustomerName,s.StockItemID,s.UnitPrice,si.OrderDate  from Sales.Customers SC
 join Sales.Orders SI on SC.CustomerID = SI.CustomerID
-join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID  -- я голову сломал, не могу понять как на каждого клиента вывести, подскажите это должно через outer apply
+join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID   
 outer apply(
              select top 2 WS.StockItemID,WS.UnitPrice from Warehouse.StockItems WS
 			 where ws.StockItemID=sol.StockItemID
 			 order by UnitPrice desc
 			 )s
 order by CustomerID,CustomerName,UnitPrice desc
- --- логичным вариантом решения видится, это пронумеровать и взять каждую 1ую строчку, но и тут я столкнулся с трудностями, которые так и не могу понять.
+ --логичным вариантом решения видится, это пронумеровать и взять каждую 1ую строчку, но и тут я столкнулся с трудностями, которые так и не могу понять.
 select * from (
 select  SC.CustomerID,SC.CustomerName,ws.StockItemID,ws.UnitPrice,si.OrderDate,
 ROW_NUMBER() over(partition by SC.CustomerID--, ws.UnitPrice  не понимаю, почему он начинает сортировать по увелечению цены.

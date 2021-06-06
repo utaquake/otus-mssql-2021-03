@@ -131,18 +131,20 @@ join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID  -- я голову сло
 outer apply(
              select top 2 WS.StockItemID,WS.UnitPrice from Warehouse.StockItems WS
 			 where ws.StockItemID=sol.StockItemID
-			 
 			 order by UnitPrice desc
 			 )s
 order by CustomerID,CustomerName,UnitPrice desc
- 
+ --- логичным вариантом решения видится, это пронумеровать и взять каждую 1ую строчку, но и тут я столкнулся с трудностями, которые так и не могу понять.
 select * from (
 select  SC.CustomerID,SC.CustomerName,ws.StockItemID,ws.UnitPrice,si.OrderDate,
-ROW_NUMBER() over(partition by SC.CustomerID order by ws.UnitPrice desc ) rn
+ROW_NUMBER() over(partition by SC.CustomerID--, ws.UnitPrice  не понимаю, почему он начинает сортировать по увелечению цены.
+order by ws.UnitPrice desc) rn
 from Sales.Customers SC
 join Sales.Orders SI on SC.CustomerID = SI.CustomerID
 join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID
 join Warehouse.StockItems WS on ws.StockItemID=sol.StockItemID
 )s
 order by CustomerID,UnitPrice,rn
+ 
+
  

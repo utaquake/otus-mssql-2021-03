@@ -74,18 +74,16 @@ Tailspin Toys (Head Office) | PO Box 8975
 Tailspin Toys (Head Office) | Ribeiroville
 ----------------------------+--------------------
 */
-select t.CustomerName,s.AddresLine from 
-(
-select DeliveryAddressLine1 as AddresLine from Sales.Customers 
-union
-select DeliveryAddressLine2 from Sales.Customers
-union 
-select PostalAddressLine1 from Sales.Customers
-union
-select PostalAddressLine1 from Sales.Customers 
-)s
-outer apply (select CustomerName from  Sales.Customers )t
-where t.CustomerName like'Tailspin Toys%'
+
+SELECT CustomerName,Adress
+FROM (
+SELECT DeliveryAddressLine1,
+       DeliveryAddressLine2,
+	   PostalAddressLine1,
+	   PostalAddressLine2,
+	   CustomerName
+from Sales.Customers) as ADRESS
+UNPIVOT (Adress FOR Customer IN (DeliveryAddressLine1, DeliveryAddressLine2,PostalAddressLine1,PostalAddressLine2)) AS unpt;
 
 
 /*
@@ -105,46 +103,36 @@ CountryId | CountryName | Code
 */
 
 
-select  CountryID,CountryName,cast(IsoNumericCode as varchar(max)) as CODE from Application.Countries
-union 
-select  CountryID,CountryName,IsoAlpha3Code from Application.Countries
-order by CountryID,CountryName, CODE desc --наверное это неправильное решение раз тут нет pivot и outer apply
-------
-;with cte as
-(
-select CountryID,cast(IsoNumericCode as varchar(max)) as CODE from Application.Countries
-union 
-select CountryID, IsoAlpha3Code as CODE from Application.Countries
-)
-select CountryID,s.CountryName,CODE from cte cte 
-outer apply(select CountryName from  Application.Countries  ac where ac.CountryID = cte.CountryID)s
-order by CountryID,CountryName, CODE desc --так?))
+select CountryID,CountryName,CODE
+from(
+      select CountryID,
+	         CountryName,
+			 cast(IsoNumericCode as nvarchar(6))as IsoNumericCode,
+			 cast(IsoAlpha3Code as nvarchar(6))as IsoAlpha3Code  --не понимаю, почему мне приходится оборачивать в каст эту колонку, если она и так имеет по дефолту тип нварчар(6)
+			 from Application.Countries)as Main
+			 UNPIVOT (CODE FOR Customer IN (IsoNumericCode,IsoAlpha3Code)) AS unpt
+			 order by CountryID,CountryName, CODE desc;
+
 
 /*
 4. Выберите по каждому клиенту два самых дорогих товара, которые он покупал.
 В результатах должно быть ид клиета, его название, ид товара, цена, дата покупки.
 */
---Я пока не могу сообразить, задание должно сделано быть через outer apply?
-select  SC.CustomerID,SC.CustomerName,s.StockItemID,s.UnitPrice,si.OrderDate  from Sales.Customers SC
-join Sales.Orders SI on SC.CustomerID = SI.CustomerID
-join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID   
+
+select   SC.CustomerID, --так или каждый купленный товар должен быть уникальным?
+         SC.CustomerName,
+		 s.StockItemID,
+		 s.UnitPrice,
+		 s.OrderDate  
+		 from Sales.Customers SC 
 outer apply(
-             select top 2 WS.StockItemID,WS.UnitPrice from Warehouse.StockItems WS
-			 where ws.StockItemID=sol.StockItemID
-			 order by UnitPrice desc
+             select top 2 ws.StockItemID,ws.UnitPrice,OrderDate 
+			 from Warehouse.StockItems WS
+             join Sales.OrderLines SOL on WS.StockItemID = SOL.StockItemID
+             join Sales.Orders SO on SO.OrderID = SOL.OrderID
+			 where so.CustomerID=sc.CustomerID 
+			 order by ws.UnitPrice desc
 			 )s
-order by CustomerID,CustomerName,UnitPrice desc
- --логичным вариантом решения видится, это пронумеровать и взять каждую 1ую строчку, но и тут я столкнулся с трудностями, которые так и не могу понять.
-select * from (
-select  SC.CustomerID,SC.CustomerName,ws.StockItemID,ws.UnitPrice,si.OrderDate,
-ROW_NUMBER() over(partition by SC.CustomerID--, ws.UnitPrice  не понимаю, почему он начинает сортировать по увелечению цены.
-order by ws.UnitPrice desc) rn
-from Sales.Customers SC
-join Sales.Orders SI on SC.CustomerID = SI.CustomerID
-join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID
-join Warehouse.StockItems WS on ws.StockItemID=sol.StockItemID
-)s
-order by CustomerID,UnitPrice,rn
- 
+order by CustomerID,CustomerName,s.UnitPrice desc
 
  

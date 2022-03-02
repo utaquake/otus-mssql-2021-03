@@ -40,23 +40,34 @@ InvoiceMonth | Peeples Valley, AZ | Medicine Lodge, KS | Gasport, NY | Sylvanite
 */
 
 
-select  CONVERT(varchar,pvt.LastEditedWhen,104) as [InvoiceMonth],--не совсем понимаю почему я могу обращаться к первой колонке LastEditedWhen через алиас pvt и не могу обращаться через алиас s
-pvt.[Peeples Valley, AZ],pvt.[Sylvanite, MT],pvt.[Gasport, NY],pvt.[Medicine Lodge, KS],pvt.[Head Office],pvt.[Jessie, ND]
+select  
+ pvt.LastEditedWhen as [InvoiceMonth]
+,isnull(pvt.[Peeples Valley, AZ],0) as [Peeples Valley, AZ]
+,isnull(pvt.[Sylvanite, MT],0) as [Sylvanite, MT]
+,isnull(pvt.[Gasport, NY],0) as [Gasport, NY]
+,isnull(pvt.[Medicine Lodge, KS],0) as [Medicine Lodge, KS]
+,isnull(pvt.[Head Office],0) as [Head Office]
+,isnull(pvt.[Jessie, ND],0) as [Jessie, ND]
 from 
 (
-select 
-     SOL.LastEditedWhen 
-    ,SUBSTRING(CustomerName,(CHARINDEX('(',CustomerName)+1),(CHARINDEX(')',CustomerName)-CHARINDEX('(',CustomerName)-1)) as names
-     ,Quantity 
-from Sales.Customers  SC
-join Sales.Orders SI on SC.CustomerID = SI.CustomerID
-join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID
-where SC.CustomerID<=6 
+  select 
+	 FORMAT(DATEADD(MONTH, DATEDIFF(MONTH, 0, SOL.LastEditedWhen), 0),'dd-MM-yyyy') as LastEditedWhen
+     ,SUBSTRING(CustomerName,(CHARINDEX('(',CustomerName)+1),(CHARINDEX(')',CustomerName)-CHARINDEX('(',CustomerName)-1)) as names
+     ,Quantity
+   from Sales.Customers  SC
+   join Sales.Orders SI on SC.CustomerID = SI.CustomerID
+   join Sales.OrderLines SOL on SI.OrderID = SOL.OrderID
+   where SC.CustomerID<=6
+   group by YEAR(SOL.LastEditedWhen)
+        ,MONTH(SOL.LastEditedWhen)
+		,FORMAT(DATEADD(MONTH, DATEDIFF(MONTH, 0, SOL.LastEditedWhen), 0),'dd-MM-yyyy')
+		,Quantity
+		,SUBSTRING(CustomerName,(CHARINDEX('(',CustomerName)+1),(CHARINDEX(')',CustomerName)-CHARINDEX('(',CustomerName)-1)) 
 ) as s 
 PIVOT(
 SUM(s.Quantity) for s.names in([Peeples Valley, AZ],[Sylvanite, MT],[Gasport, NY],[Medicine Lodge, KS],[Head Office],[Jessie, ND])
 )as pvt
- order by pvt.LastEditedWhen
+order by year(LastEditedWhen),month(LastEditedWhen)
 
 
 
@@ -134,5 +145,8 @@ outer apply(
 			 order by ws.UnitPrice desc
 			 )s
 order by CustomerID,CustomerName,s.UnitPrice desc
+
+ 
+
 
  
